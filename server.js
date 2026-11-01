@@ -97,6 +97,7 @@ app.get("/api/search", searchLimiter, async (req, res) => {
 });
 
 // Spuštění serveru
-app.listen(PORT, () => {
-  console.log(`Server běží na http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server běží na portu ${PORT}`);
 });
+
