@@ -1,0 +1,259 @@
+
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Inizio – Google Organic Results</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 760px;
+      margin: 60px auto;
+      padding: 20px;
+      color: #222;
+      line-height: 1.5;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    form {
+      display: flex;
+      gap: 10px;
+      margin: 25px 0;
+    }
+
+    input {
+      flex: 1;
+      min-width: 0;
+      padding: 12px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    button {
+      padding: 12px 18px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+
+    #download-button {
+      background: #15803d;
+      margin: 15px 0;
+    }
+
+    .result {
+      padding: 18px 0;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .result h3 {
+      margin: 5px 0;
+    }
+
+    .result a {
+      color: #1a0dab;
+      text-decoration: none;
+      overflow-wrap: anywhere;
+    }
+
+    .result a:hover {
+      text-decoration: underline;
+    }
+
+    .result p {
+      margin: 5px 0;
+      color: #555;
+    }
+
+    #status {
+      margin: 20px 0;
+    }
+
+    @media (max-width: 500px) {
+      form {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Google Organic Results</h1>
+
+  <p>
+    Zadej klíčové slovní spojení.
+    Aplikace zobrazí organické výsledky
+    z první stránky Googlu.
+  </p>
+
+  <form id="search-form">
+    <input
+      id="keyword"
+      type="text"
+      placeholder="Např. nejlepší kávovary"
+      maxlength="150"
+      required
+    />
+
+    <button id="search-button" type="submit">
+      Vyhledat
+    </button>
+  </form>
+
+  <p id="status" role="status"></p>
+
+  <button id="download-button" disabled>
+    Stáhnout JSON
+  </button>
+
+  <div id="results"></div>
+
+  <script>
+    const form = document.getElementById("search-form");
+    const keywordInput = document.getElementById("keyword");
+    const searchButton = document.getElementById("search-button");
+    const downloadButton = document.getElementById("download-button");
+    const statusElement = document.getElementById("status");
+    const resultsElement = document.getElementById("results");
+
+    // Uchovává poslední úspěšně získané výsledky
+    let searchData = null;
+
+    // Odešle hledaný výraz na náš backend
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const keyword = keywordInput.value.trim();
+
+      if (!keyword) {
+        statusElement.textContent = "Zadej klíčové slovo.";
+        return;
+      }
+
+      searchButton.disabled = true;
+      downloadButton.disabled = true;
+      searchData = null;
+
+      resultsElement.replaceChildren();
+      statusElement.textContent = "Probíhá vyhledávání...";
+
+      try {
+        const response = await fetch(
+          `/api/search?q=${encodeURIComponent(keyword)}`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error || "Vyhledávání se nezdařilo."
+          );
+        }
+
+        if (!Array.isArray(data.results)) {
+          throw new Error("Server vrátil neplatný formát dat.");
+        }
+
+        searchData = data;
+
+        displayResults(data.results);
+
+        statusElement.textContent =
+          `Nalezeno ${data.results.length} organických výsledků.`;
+
+        downloadButton.disabled = false;
+
+      } catch (error) {
+        statusElement.textContent =
+          `Chyba: ${error.message}`;
+
+      } finally {
+        searchButton.disabled = false;
+      }
+    });
+
+    // Zobrazí jednotlivé výsledky v HTML
+    function displayResults(results) {
+      resultsElement.replaceChildren();
+
+      results.forEach((result) => {
+        const item = document.createElement("div");
+        item.className = "result";
+
+        const title = document.createElement("h3");
+        const link = document.createElement("a");
+        const description = document.createElement("p");
+
+        // Povolit pouze běžné webové odkazy
+        let safeUrl;
+
+        try {
+          safeUrl = new URL(result.url);
+
+          if (!["http:", "https:"].includes(safeUrl.protocol)) {
+            return;
+          }
+        } catch {
+          return;
+        }
+
+        link.href = safeUrl.href;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent =
+          `${result.position}. ${result.title}`;
+
+        title.appendChild(link);
+
+        description.textContent = result.description || "";
+
+        item.appendChild(title);
+        item.appendChild(description);
+
+        resultsElement.appendChild(item);
+      });
+    }
+
+    // Uloží výsledky do JSON souboru
+    downloadButton.addEventListener("click", () => {
+      if (!searchData) {
+        return;
+      }
+
+      const json = JSON.stringify(searchData, null, 2);
+
+      const blob = new Blob([json], {
+        type: "application/json;charset=utf-8"
+      });
+
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "google-organic-results.json";
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+  </script>
+
+</body>
+</html>
