@@ -2,7 +2,8 @@
 require("dotenv").config();
 
 const express = require("express");
-const { rateLimit } = require("express-rate-limit");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
+const { isIP } = require("node:net");
 const path = require("node:path");
 const { normalizeOrganicResults } = require("./searchResults");
 
@@ -11,17 +12,27 @@ const PORT = process.env.PORT || 3000;
 
 
 const searchLimiter = rateLimit({
-  // Časové okno: 15 minut
   windowMs: 15 * 60 * 1000,
-
-  // Maximálně 10 požadavků na IP adresu
   limit: 10,
 
-  // Informace o limitu v HTTP hlavičkách
   standardHeaders: "draft-8",
   legacyHeaders: false,
 
-  // Odpověď při překročení limitu
+  keyGenerator: (req) => {
+    // Skutečná IP návštěvníka na Renderu
+    const forwardedIp = req.get("cf-connecting-ip");
+
+    // Na Renderu použijeme důvěryhodnou
+    // hlavičku, lokálně běžnou IP z Expressu.
+    const clientIp =
+      process.env.RENDER === "true" &&
+      isIP(forwardedIp || "")
+        ? forwardedIp
+        : req.ip;
+
+    return ipKeyGenerator(clientIp);
+  },
+
   message: {
     error: "Příliš mnoho vyhledávání. Zkus to prosím později."
   }
