@@ -210,3 +210,38 @@ nebo správu kvóty poskytovatele SerpApi.
 - Aplikace zpracovává organické výsledky první stránky.
 - Unit testy ověřují zpracování dat, nikoli živé
   vyhledávání nebo kompletní uživatelské rozhraní.
+
+
+## Spuštění pomocí Docker Compose
+
+Pro spuštění aplikace pomocí Dockeru je potřeba
+nainstalovaný Docker Desktop nebo Docker Engine
+s Docker Compose.
+
+1. V kořenové složce projektu vytvořte `.env`
+   podle souboru `.env.example`.
+
+2. Nastavte vlastní SerpApi API klíč:
+
+   `SERPAPI_KEY=vas_api_klic`
+
+3. Spusťte aplikaci:
+
+   ```bash
+   docker compose up --build
+   ```
+
+4. Otevřete http://localhost:3000
+
+Ukončení aplikace:
+
+```bash
+docker compose down
+```
+
+Při změně zdrojového kódu je potřeba znovu
+sestavit Docker obraz.
+
+Docker Compose spouští celou aplikaci včetně
+backendu a HTML rozhraní. SerpApi zůstává
+externí službou.
